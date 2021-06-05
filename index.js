@@ -62,8 +62,6 @@ async function run(targetUrl) {
         run(targetUrl)
     }
 
-    console.log('Crawled:')
-    console.log(crawled)
-    console.log('Uncrawled:')
-    console.log(uncrawled)
+    console.log('Crawled: ' + crawled.length)
+    console.log('Uncrawled: ' + uncrawled.length)
 })()
