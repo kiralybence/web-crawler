@@ -57,6 +57,8 @@ async function run(targetUrl) {
 }
 
 function shouldCrawl(url) {
+    url = url.toLowerCase()
+
     // We don't mess with these guys
     const skipUrls = [
         'google.com',
@@ -69,12 +71,18 @@ function shouldCrawl(url) {
         'twitter.com',
     ]
 
+    const skipFiles = [
+        'css', 'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'exe',
+        'mp4', 'webm', 'xls', 'xlsx',
+    ]
+
     const isAlreadyCrawled = crawled.includes(url)
     const isAlreadyQueued = queue.includes(url)
     const shouldNotCrawl = skipUrls.some(skipUrl => url.includes(skipUrl))
     const isSameDomain = url.startsWith(process.argv[2])
+    const isFile = skipFiles.some(skipFile => url.endsWith('.' + skipFile))
 
-    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (!sameDomainOnly || isSameDomain)
+    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (!sameDomainOnly || isSameDomain) && !isFile
 }
 
 (async () => {
