@@ -46,7 +46,7 @@ async function run(targetUrl) {
     try {
         newlyFound = await crawlUrl(targetUrl)
     } catch (e) {
-        console.error(e.message)
+        console.error(`${e.message} (${targetUrl})`)
     }
 
     // Add newly found URLs to queue
