@@ -41,6 +41,10 @@ async function run(targetUrl) {
     // Remove current URL from queue
     queue = queue.filter(url => url !== targetUrl)
 
+    // The queue and the batches aren't in sync, so we have to do some extra checking
+    // in order not to crawl the same url multiple times.
+    if (crawled.includes(targetUrl)) return
+
     // Get new URLs to crawl
     let newlyFound = []
     try {
@@ -98,12 +102,15 @@ function shouldCrawl(url) {
     setInterval(async () => {
         ++batchCount
 
-        for (let i = 0; i < queue.length; i++) {
-            if (!queue[i]) continue;
+        // Because the queue might change in the meantime
+        const currentQueue = queue
+
+        for (let i = 0; i < currentQueue.length; i++) {
+            if (!currentQueue[i]) continue;
 
             await sleep(50 * i)
-            console.log(`\n${++crawlCount} (${i + 1}/${queue.length} in Batch #${batchCount})`)
-            run(queue[i])
+            console.log(`\n${++crawlCount} (${i + 1}/${currentQueue.length} in Batch #${batchCount})`)
+            run(currentQueue[i])
         }
     }, 1000)
 })()
