@@ -23,7 +23,7 @@ function uniqueArr(arr) {
     return arr.filter((value, index) => arr.indexOf(value) === index)
 }
 
-async function sleep(ms) {
+function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
