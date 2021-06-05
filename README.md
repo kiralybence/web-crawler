@@ -2,7 +2,7 @@
 
 Grab all links you can find. That's it.
 
-It can very easily be turned to a website archiver tool, but I decided to keep it simple.
+It can very easily be turned into a website archiver tool, but I've decided to keep it simple.
 
 ## Warning
 The crawler sends a **lot** of requests and you might get rate limited (or worse, IP blacklisted). I advise you not to crawl websites you don't want to get kicked from.
