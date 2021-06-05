@@ -2,10 +2,6 @@ const axios = require('axios')
 const { JSDOM } = require('jsdom')
 
 async function crawlUrl(targetUrl) {
-    if (targetUrl.endsWith('/')) {
-        targetUrl = targetUrl.slice(0, -1)
-    }
-
     const resp = await axios.get(targetUrl)
     const dom = new JSDOM(resp.data)
     let anchors = dom.window.document.querySelectorAll('a')
