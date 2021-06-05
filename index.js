@@ -11,7 +11,12 @@ async function crawlUrl(targetUrl) {
     let anchors = dom.window.document.querySelectorAll('a')
     let urls = Array.from(anchors)
         .map(a => a.getAttribute('href'))
-        .map(url => String(url).startsWith('/') && !String(url).startsWith('//') ? targetUrl + url : url) // convert relative URLs to absolute
+        .map(url => {
+            // convert relative URLs to absolute
+            return String(url).startsWith('/') && !String(url).startsWith('//')
+                ? (new URL(targetUrl)).origin + url
+                : url
+        })
         .filter(url => String(url).startsWith('http'))
 
     urls = uniqueArr(urls)
