@@ -95,7 +95,7 @@ function shouldCrawl(url) {
     const isSameDomain = new URL(url).hostname.replace('www.', '') === new URL(process.argv[2]).hostname.replace('www.', '')
     const isFile = skipFiles.some(skipFile => url.endsWith('.' + skipFile))
 
-    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (process.argv.includes('same-domain-only') || isSameDomain) && !isFile
+    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && !(process.argv.includes('same-domain-only') && !isSameDomain) && !isFile
 }
 
 (async () => {
