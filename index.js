@@ -43,7 +43,10 @@ async function run(targetUrl) {
 
     // The queue and the batches aren't in sync, so we have to do some extra checking
     // in order not to crawl the same url multiple times.
-    if (crawled.includes(targetUrl)) return
+    if (crawled.includes(targetUrl)) {
+        console.log('SKIP: ALREADY CRAWLED')
+        return
+    }
 
     // Get new URLs to crawl
     let newlyFound = []
