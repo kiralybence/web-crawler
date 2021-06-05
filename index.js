@@ -14,11 +14,25 @@ async function crawlUrl(targetUrl) {
         // get URLs from anchors
         .map(a => a.getAttribute('href'))
 
-        // convert relative URLs to absolute
+        // some URL formatting
         .map(url => {
-            return String(url).startsWith('/') && !String(url).startsWith('//')
-                ? (new URL(targetUrl)).origin + url
-                : url
+            // the URL might not be string type
+            url = String(url)
+
+            // why would you even do that
+            url = url.toLowerCase()
+
+            // drop / from the end of the URL
+            if (url.endsWith('/')) {
+                url = url.slice(0, -1)
+            }
+
+            // convert relative URLs to absolute
+            if (url.startsWith('/') && !url.startsWith('//')) {
+                url = (new URL(targetUrl)).origin + url
+            }
+
+            return url
         })
 
         // filter only valid URLs
@@ -60,8 +74,6 @@ async function run(targetUrl) {
 }
 
 function shouldCrawl(url) {
-    url = url.toLowerCase()
-
     // We don't mess with these guys
     const skipUrls = [
         'google.com',
@@ -96,28 +108,19 @@ function shouldCrawl(url) {
     // First URL to crawl
     queue.push(process.argv[2])
 
-    let crawlCount = 0
-    let batchCount = 0
-    setInterval(async () => {
-        ++batchCount
+    let count = 0
+    while (1) {
+        await sleep(50)
 
-        // Because the queue might change in the meantime
-        const currentQueue = queue
+        let url = queue.shift()
 
-        for (let i = 0; i < currentQueue.length; i++) {
-            if (!currentQueue[i]) continue
+        // If URL wasn't found
+        if (!url) continue
 
-            // The queue and the batches aren't in sync, so we have to do some extra checking
-            // in order not to crawl the same url multiple times.
-            if (crawled.includes(currentQueue[i])) {
-                // Remove current URL from queue
-                queue = queue.filter(url => url !== currentQueue[i])
-                continue
-            }
+        // If URL is already crawled
+        if (crawled.includes(url)) continue
 
-            await sleep(50 * i)
-            console.log(`\n${++crawlCount} (${i + 1}/${currentQueue.length} in Batch #${batchCount})`)
-            run(currentQueue[i])
-        }
-    }, 1000)
+        console.log(`\n${++count} (${queue.length} others remaining)`)
+        run(url)
+    }
 })()
