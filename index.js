@@ -3,20 +3,23 @@ const { JSDOM } = require('jsdom')
 
 async function crawlUrl(targetUrl) {
     const resp = await axios.get(targetUrl)
-    const anchors = new JSDOM(resp.data).window.document.querySelectorAll('a')
-    let urls = Array.from(anchors)
+    const anchors = Array.from(new JSDOM(resp.data).window.document.querySelectorAll('a'))
+
+    let urls = anchors
+        // get URLs from anchors
         .map(a => a.getAttribute('href'))
+
+        // convert relative URLs to absolute
         .map(url => {
-            // convert relative URLs to absolute
             return String(url).startsWith('/') && !String(url).startsWith('//')
                 ? (new URL(targetUrl)).origin + url
                 : url
         })
+
+        // filter only valid URLs
         .filter(url => String(url).startsWith('http'))
 
-    urls = uniqueArr(urls)
-
-    return urls
+    return uniqueArr(urls)
 }
 
 function uniqueArr(arr) {
