@@ -12,7 +12,7 @@ The crawler sends a **lot** of requests and you might get rate limited (or worse
 ### Prerequisites
 - Node v12+
 
-## Setup
+### Setup
 
 - Install npm packages
 ```bash
