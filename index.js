@@ -41,12 +41,8 @@ async function run(targetUrl) {
     // Remove current URL from queue
     queue = queue.filter(url => url !== targetUrl)
 
-    // The queue and the batches aren't in sync, so we have to do some extra checking
-    // in order not to crawl the same url multiple times.
-    if (crawled.includes(targetUrl)) {
-        console.log('SKIP: ALREADY CRAWLED')
-        return
-    }
+    // Mark current URL as crawled
+    crawled.push(targetUrl)
 
     // Get new URLs to crawl
     let newlyFound = []
@@ -59,8 +55,8 @@ async function run(targetUrl) {
     // Add newly found URLs to queue
     queue = queue.concat(newlyFound.filter(url => shouldCrawl(url)))
 
-    // Mark current URL as crawled
-    crawled.push(targetUrl)
+    // Just in case
+    queue = uniqueArr(queue)
 }
 
 function shouldCrawl(url) {
@@ -109,7 +105,15 @@ function shouldCrawl(url) {
         const currentQueue = queue
 
         for (let i = 0; i < currentQueue.length; i++) {
-            if (!currentQueue[i]) continue;
+            if (!currentQueue[i]) continue
+
+            // The queue and the batches aren't in sync, so we have to do some extra checking
+            // in order not to crawl the same url multiple times.
+            if (crawled.includes(currentQueue[i])) {
+                // Remove current URL from queue
+                queue = queue.filter(url => url !== currentQueue[i])
+                continue
+            }
 
             await sleep(50 * i)
             console.log(`\n${++crawlCount} (${i + 1}/${currentQueue.length} in Batch #${batchCount})`)
