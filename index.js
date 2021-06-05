@@ -94,6 +94,7 @@ function shouldCrawl(url) {
         run(uncrawled[i])
     }
 
+    console.log('\n--\n')
     console.log('Crawled: ' + crawled.length)
     console.log('Uncrawled: ' + uncrawled.length)
 })()
