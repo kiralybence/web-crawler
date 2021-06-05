@@ -57,9 +57,12 @@ async function run(targetUrl) {
 
     await run(process.argv[2])
 
-    for (const targetUrl of uncrawled) {
-        await sleep(200)
-        run(targetUrl)
+    for (let i = 0; i < uncrawled.length; i++) {
+        if (!uncrawled[i]) continue;
+
+        // await sleep(100)
+        console.log('\n' + (i + 1) + '/' + uncrawled.length)
+        await run(uncrawled[i])
     }
 
     console.log('Crawled: ' + crawled.length)
