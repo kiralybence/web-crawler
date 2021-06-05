@@ -4,8 +4,6 @@ const { JSDOM } = require('jsdom')
 let crawled = []
 let queue = []
 
-const sameDomainOnly = process.argv[3] === 'same-domain-only'
-
 async function crawlUrl(targetUrl) {
     const resp = await axios.get(targetUrl)
     const anchors = Array.from(new JSDOM(resp.data).window.document.querySelectorAll('a'))
@@ -97,7 +95,7 @@ function shouldCrawl(url) {
     const isSameDomain = new URL(url).hostname.replace('www.', '') === new URL(process.argv[2]).hostname.replace('www.', '')
     const isFile = skipFiles.some(skipFile => url.endsWith('.' + skipFile))
 
-    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (!sameDomainOnly || isSameDomain) && !isFile
+    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (process.argv.includes('same-domain-only') || isSameDomain) && !isFile
 }
 
 (async () => {
