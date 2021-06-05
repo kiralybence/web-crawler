@@ -83,7 +83,7 @@ function shouldCrawl(url) {
     const isAlreadyCrawled = crawled.includes(url)
     const isAlreadyQueued = queue.includes(url)
     const shouldNotCrawl = skipUrls.some(skipUrl => url.includes(skipUrl))
-    const isSameDomain = url.startsWith(process.argv[2])
+    const isSameDomain = new URL(url).hostname.replace('www.', '') === new URL(process.argv[2]).hostname.replace('www.', '')
     const isFile = skipFiles.some(skipFile => url.endsWith('.' + skipFile))
 
     return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (!sameDomainOnly || isSameDomain) && !isFile
