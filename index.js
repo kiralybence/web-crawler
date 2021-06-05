@@ -6,23 +6,17 @@ async function crawlUrl(targetUrl) {
         targetUrl = targetUrl.slice(0, -1)
     }
 
-    console.log('Crawling: ' + targetUrl)
+    const resp = await axios.get(targetUrl)
+    const dom = new JSDOM(resp.data)
+    let anchors = dom.window.document.querySelectorAll('a')
+    let urls = Array.from(anchors)
+        .map(a => a.getAttribute('href'))
+        .map(url => String(url).startsWith('/') && !String(url).startsWith('//') ? targetUrl + url : url) // convert relative URLs to absolute
+        .filter(url => String(url).startsWith('http'))
 
-    try {
-        const resp = await axios.get(targetUrl)
-        const dom = new JSDOM(resp.data)
-        let anchors = dom.window.document.querySelectorAll('a')
-        let urls = Array.from(anchors)
-            .map(a => a.getAttribute('href'))
-            .map(url => String(url).startsWith('/') ? targetUrl + url : url) // convert relative URLs to absolute
-            .filter(url => String(url).startsWith('http'))
+    urls = uniqueArr(urls)
 
-        urls = uniqueArr(urls)
-
-        return urls
-    } catch (e) {
-        console.error(e.message)
-    }
+    return urls
 }
 
 function uniqueArr(arr) {
