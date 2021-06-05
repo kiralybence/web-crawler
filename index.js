@@ -35,28 +35,6 @@ const sameDomainOnly = process.argv[3] === 'same-domain-only'
 async function run(targetUrl) {
     console.log('Crawling: ' + targetUrl)
 
-    // If already crawled, skip
-    if (crawled.includes(targetUrl)) {
-        console.log('SKIP: ALREADY CRAWLED')
-        return
-    }
-
-    // We don't mess with these guys
-    const skipUrls = [
-        'google.com',
-        'goo.gl',
-        'youtube.com',
-        'facebook.com',
-        'instagram.com',
-        'linkedin.com',
-        'microsoft.com',
-    ]
-
-    if (skipUrls.some(skipUrl => targetUrl.includes(skipUrl))) {
-        console.log('SKIP: DO NOT CRAWL THIS SITE')
-        return
-    }
-
     // Get new URLs to crawl
     let newlyFound = []
     try {
@@ -66,20 +44,34 @@ async function run(targetUrl) {
     }
 
     // Add newly found URLs to queue
-    uncrawled = uncrawled.concat(newlyFound.filter(url => {
-        const isAlreadyCrawled = crawled.includes(url)
-        const isAlreadyQueued = uncrawled.includes(url)
-        const shouldNotCrawl = skipUrls.some(skipUrl => targetUrl.includes(skipUrl))
-        const isSameDomain = url.startsWith(process.argv[2])
-
-        return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (!sameDomainOnly || isSameDomain)
-    }))
+    uncrawled = uncrawled.concat(newlyFound.filter(url => shouldCrawl(url)))
 
     // Mark current URL as crawled
     crawled.push(targetUrl)
 
     // Remove current URL from queue
     uncrawled = uncrawled.filter(url => url !== targetUrl)
+}
+
+function shouldCrawl(url) {
+    // We don't mess with these guys
+    const skipUrls = [
+        'google.com',
+        'goo.gl',
+        'youtube.com',
+        'facebook.com',
+        'instagram.com',
+        'linkedin.com',
+        'microsoft.com',
+        'twitter.com',
+    ]
+
+    const isAlreadyCrawled = crawled.includes(url)
+    const isAlreadyQueued = uncrawled.includes(url)
+    const shouldNotCrawl = skipUrls.some(skipUrl => url.includes(skipUrl))
+    const isSameDomain = url.startsWith(process.argv[2])
+
+    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && (!sameDomainOnly || isSameDomain)
 }
 
 (async () => {
