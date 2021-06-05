@@ -77,7 +77,7 @@ function shouldCrawl(url) {
 
     const skipFiles = [
         'css', 'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'exe',
-        'mp4', 'webm', 'xls', 'xlsx',
+        'mp4', 'webm', 'xls', 'xlsx', 'ppt', 'pptx',
     ]
 
     const isAlreadyCrawled = crawled.includes(url)
