@@ -1,6 +1,11 @@
 const axios = require('axios')
 const { JSDOM } = require('jsdom')
 
+let crawled = []
+let queue = []
+
+const sameDomainOnly = process.argv[3] === 'same-domain-only'
+
 async function crawlUrl(targetUrl) {
     const resp = await axios.get(targetUrl)
     const anchors = Array.from(new JSDOM(resp.data).window.document.querySelectorAll('a'))
@@ -30,11 +35,6 @@ function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-let crawled = []
-let uncrawled = []
-
-const sameDomainOnly = process.argv[3] === 'same-domain-only'
-
 async function run(targetUrl) {
     console.log('Crawling: ' + targetUrl)
 
@@ -47,13 +47,13 @@ async function run(targetUrl) {
     }
 
     // Add newly found URLs to queue
-    uncrawled = uncrawled.concat(newlyFound.filter(url => shouldCrawl(url)))
+    queue = queue.concat(newlyFound.filter(url => shouldCrawl(url)))
 
     // Mark current URL as crawled
     crawled.push(targetUrl)
 
     // Remove current URL from queue
-    uncrawled = uncrawled.filter(url => url !== targetUrl)
+    queue = queue.filter(url => url !== targetUrl)
 }
 
 function shouldCrawl(url) {
@@ -70,7 +70,7 @@ function shouldCrawl(url) {
     ]
 
     const isAlreadyCrawled = crawled.includes(url)
-    const isAlreadyQueued = uncrawled.includes(url)
+    const isAlreadyQueued = queue.includes(url)
     const shouldNotCrawl = skipUrls.some(skipUrl => url.includes(skipUrl))
     const isSameDomain = url.startsWith(process.argv[2])
 
@@ -84,15 +84,15 @@ function shouldCrawl(url) {
 
     await run(process.argv[2])
 
-    for (let i = 0; i < uncrawled.length; i++) {
-        if (!uncrawled[i]) continue;
+    for (let i = 0; i < queue.length; i++) {
+        if (!queue[i]) continue;
 
         await sleep(50)
-        console.log('\n' + (i + 1) + '/' + uncrawled.length)
-        run(uncrawled[i])
+        console.log('\n' + (i + 1) + '/' + queue.length)
+        run(queue[i])
     }
 
     console.log('\n--\n')
     console.log('Crawled: ' + crawled.length)
-    console.log('Uncrawled: ' + uncrawled.length)
+    console.log('Queue: ' + queue.length)
 })()
