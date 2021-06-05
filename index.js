@@ -26,6 +26,7 @@ async function crawlUrl(targetUrl) {
             }
 
             // convert relative URLs to absolute
+            // TODO: what about relative URLs without / in the front (just href="something.php")
             if (url.startsWith('/') && !url.startsWith('//')) {
                 url = (new URL(targetUrl)).origin + url
             }
