@@ -3,8 +3,7 @@ const { JSDOM } = require('jsdom')
 
 async function crawlUrl(targetUrl) {
     const resp = await axios.get(targetUrl)
-    const dom = new JSDOM(resp.data)
-    let anchors = dom.window.document.querySelectorAll('a')
+    const anchors = new JSDOM(resp.data).window.document.querySelectorAll('a')
     let urls = Array.from(anchors)
         .map(a => a.getAttribute('href'))
         .map(url => {
