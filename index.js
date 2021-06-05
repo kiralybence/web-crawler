@@ -51,7 +51,11 @@ async function run(targetUrl) {
 }
 
 (async () => {
-    await run('127.0.0.1') // replace this with target URL
+    if (!process.argv[2]) {
+        throw 'Target URL is not specified'
+    }
+
+    await run(process.argv[2])
 
     for (const targetUrl of uncrawled) {
         await sleep(200)
