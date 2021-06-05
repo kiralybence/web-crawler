@@ -38,6 +38,9 @@ function sleep(ms) {
 async function run(targetUrl) {
     console.log('Crawling: ' + targetUrl)
 
+    // Remove current URL from queue
+    queue = queue.filter(url => url !== targetUrl)
+
     // Get new URLs to crawl
     let newlyFound = []
     try {
@@ -51,9 +54,6 @@ async function run(targetUrl) {
 
     // Mark current URL as crawled
     crawled.push(targetUrl)
-
-    // Remove current URL from queue
-    queue = queue.filter(url => url !== targetUrl)
 }
 
 function shouldCrawl(url) {
@@ -82,17 +82,20 @@ function shouldCrawl(url) {
         throw 'Target URL is not specified'
     }
 
-    await run(process.argv[2])
+    // First URL to crawl
+    queue.push(process.argv[2])
 
-    for (let i = 0; i < queue.length; i++) {
-        if (!queue[i]) continue;
+    let crawlCount = 0
+    let batchCount = 0
+    setInterval(async () => {
+        ++batchCount
 
-        await sleep(50)
-        console.log('\n' + (i + 1) + '/' + queue.length)
-        run(queue[i])
-    }
+        for (let i = 0; i < queue.length; i++) {
+            if (!queue[i]) continue;
 
-    console.log('\n--\n')
-    console.log('Crawled: ' + crawled.length)
-    console.log('Queue: ' + queue.length)
+            await sleep(50 * i)
+            console.log(`\n${++crawlCount} (${i + 1}/${queue.length} in Batch #${batchCount})`)
+            run(queue[i])
+        }
+    }, 1000)
 })()
