@@ -30,9 +30,6 @@ async function getUrls(targetUrl) {
     parser.write(await resp.text());
     parser.end();
 
-    // format
-    urls = Array.from(urls).map(url => new URL(url, process.argv[2]).href);
-
     return urls;
 }
 
@@ -43,14 +40,22 @@ async function crawl(targetUrl) {
     crawled.add(targetUrl);
 
     // Get new URLs to crawl
-    (await getUrls(targetUrl))
-        .filter(url => {
-            const isAlreadyCrawled = crawled.has(url);
-            const isSameDomain = new URL(url).hostname === new URL(process.argv[2]).hostname;
+    (await getUrls(targetUrl)).forEach(url => {
+        // some formatting
+        url = new URL(url, process.argv[2]).href;
 
-            return !isAlreadyCrawled && isSameDomain;
-        })
-        .forEach(crawl);
+        // already crawled
+        if (crawled.has(url)) {
+            return;
+        }
+
+        // isn't from the same domain
+        if (new URL(url).hostname !== new URL(process.argv[2]).hostname) {
+            return;
+        }
+
+        crawl(url);
+    });
 }
 
 let crawled = new Set();
