@@ -1,125 +1,120 @@
-const axios = require('axios')
-const { JSDOM } = require('jsdom')
+const htmlparser2 = require('htmlparser2');
 
-let crawled = []
-let queue = []
+if (!process.argv[2]) {
+    throw 'Target URL is not specified';
+}
 
-async function crawlUrl(targetUrl) {
-    const resp = await axios.get(targetUrl)
-    const anchors = Array.from(new JSDOM(resp.data).window.document.querySelectorAll('a'))
+const debug = process.argv.includes('--debug');
 
-    let urls = anchors
-        // get URLs from anchors
-        .map(a => a.getAttribute('href'))
+async function getUrls(targetUrl) {
+    let resp;
 
-        // some URL formatting
-        .map(url => {
-            // the URL might not be string type
-            url = String(url)
+    try {
+        resp = await fetch(targetUrl);
+    } catch (err) {
+        return [];
+    }
 
-            // why would you even do that
-            url = url.toLowerCase()
+    if (!resp.ok) {
+        return [];
+    }
 
-            // drop / from the end of the URL
-            if (url.endsWith('/')) {
-                url = url.slice(0, -1)
+    let body = await resp.text();
+
+    let urls = [];
+
+    const parser = new htmlparser2.Parser({
+        // XML hack, because htmlparser2 doesn't offer a simple way to fetch the value of a tag
+        onopentag(name) {
+            if (name === "loc") {
+                this.insideLoc = true;
             }
-
-            // convert relative URLs to absolute
-            // TODO: what about relative URLs without / in the front (just href="something.php")
-            if (url.startsWith('/') && !url.startsWith('//')) {
-                url = (new URL(targetUrl)).origin + url
+        },
+        ontext(text) {
+            if (this.insideLoc) {
+                urls.push(text);
             }
+        },
+        onclosetag(tagname) {
+            if (tagname === "loc") {
+                this.insideLoc = false;
+            }
+        },
 
-            return url
-        })
+        onattribute(name, value) {
+            if (name === 'href' || name === 'src') {
+                urls.push(value);
+            }
+        },
+    });
 
-        // filter only valid URLs
-        .filter(url => String(url).startsWith('http'))
+    parser.write(body);
+    parser.end();
 
-    return uniqueArr(urls)
+    // unique
+    urls = [...new Set(urls)];
+
+    // format
+    urls = urls.map(formatUrl);
+
+    return urls;
 }
 
-function uniqueArr(arr) {
-    return arr.filter((value, index) => arr.indexOf(value) === index)
-}
-
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-async function run(targetUrl) {
-    console.log('Crawling: ' + targetUrl)
-
-    // Remove current URL from queue
-    queue = queue.filter(url => url !== targetUrl)
+async function crawl(targetUrl) {
+    if (debug) {
+        console.log('Crawling: ' + targetUrl);
+    }
 
     // Mark current URL as crawled
-    crawled.push(targetUrl)
+    crawled.push(targetUrl);
 
     // Get new URLs to crawl
-    let newlyFound = []
-    try {
-        newlyFound = await crawlUrl(targetUrl)
-    } catch (e) {
-        console.error(`${e.message} (${targetUrl})`)
-    }
+    let newUrls = (await getUrls(targetUrl)).filter(shouldQueue);
 
     // Add newly found URLs to queue
-    queue = queue.concat(newlyFound.filter(url => shouldCrawl(url)))
+    queue = queue.concat(newUrls);
 
-    // Just in case
-    queue = uniqueArr(queue)
+    if (!debug) {
+        // TODO: fix
+        newUrls.forEach(console.log);
+    }
 }
 
-function shouldCrawl(url) {
-    // We don't mess with these guys
-    const skipUrls = [
-        'google.com',
-        'goo.gl',
-        'youtube.com',
-        'facebook.com',
-        'instagram.com',
-        'linkedin.com',
-        'microsoft.com',
-        'twitter.com',
-    ]
+// relative to absolute, lowercase, remove hash etc.
+function formatUrl(url) {
+    url = new URL(url, process.argv[2]);
+    url.hash = '';
 
-    const skipFiles = [
-        'css', 'pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'gif', 'webp', 'exe',
-        'mp4', 'webm', 'xls', 'xlsx', 'ppt', 'pptx',
-    ]
-
-    const isAlreadyCrawled = crawled.includes(url)
-    const isAlreadyQueued = queue.includes(url)
-    const shouldNotCrawl = skipUrls.some(skipUrl => url.includes(skipUrl))
-    const isSameDomain = new URL(url).hostname.replace('www.', '') === new URL(process.argv[2]).hostname.replace('www.', '')
-    const isFile = skipFiles.some(skipFile => url.endsWith('.' + skipFile))
-
-    return !isAlreadyCrawled && !isAlreadyQueued && !shouldNotCrawl && !(process.argv.includes('same-domain-only') && !isSameDomain) && !isFile
+    return url.href;
 }
 
-(async () => {
-    if (!process.argv[2]) {
-        throw 'Target URL is not specified'
+function shouldQueue(url) {
+    const isAlreadyCrawled = crawled.includes(url);
+    const isAlreadyQueued = queue.includes(url);
+    const isSameDomain = new URL(url).hostname === new URL(process.argv[2]).hostname;
+
+    return !isAlreadyCrawled && !isAlreadyQueued && isSameDomain;
+}
+
+let crawled = [];
+let queue = [
+    formatUrl(process.argv[2]), // first URL to crawl
+    formatUrl(new URL(process.argv[2]).origin + '/sitemap.xml'), // we also want to crawl the sitemap
+];
+let count = 0;
+
+setInterval(async () => {
+    // if queue is empty
+    if (!queue.length) return;
+
+    let url = queue.shift();
+
+    if (debug) {
+        console.log(`\n${++count} (${queue.length} others remaining)`);
     }
 
-    // First URL to crawl
-    queue.push(process.argv[2])
+    crawl(url);
+}, 50);
 
-    let count = 0
-    while (1) {
-        await sleep(50)
-
-        let url = queue.shift()
-
-        // If URL wasn't found
-        if (!url) continue
-
-        // If URL is already crawled
-        if (crawled.includes(url)) continue
-
-        console.log(`\n${++count} (${queue.length} others remaining)`)
-        run(url)
-    }
-})()
+// TODO: instead of using setinterval, make it recursive
+// TODO: use Set() instead of array, to avoid duplicates
