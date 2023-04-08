@@ -55,4 +55,4 @@ async function crawl(targetUrl) {
 
 let crawled = new Set();
 
-crawl(new URL(process.argv[2]).href)
+crawl(new URL(process.argv[2]).href);
