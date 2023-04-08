@@ -4,8 +4,6 @@ if (!process.argv[2]) {
     throw 'Target URL is not specified';
 }
 
-const debug = process.argv.includes('--debug');
-
 async function getUrls(targetUrl) {
     let resp;
 
@@ -19,102 +17,42 @@ async function getUrls(targetUrl) {
         return [];
     }
 
-    let body = await resp.text();
-
-    let urls = [];
+    let urls = new Set();
 
     const parser = new htmlparser2.Parser({
-        // XML hack, because htmlparser2 doesn't offer a simple way to fetch the value of a tag
-        onopentag(name) {
-            if (name === "loc") {
-                this.insideLoc = true;
-            }
-        },
-        ontext(text) {
-            if (this.insideLoc) {
-                urls.push(text);
-            }
-        },
-        onclosetag(tagname) {
-            if (tagname === "loc") {
-                this.insideLoc = false;
-            }
-        },
-
         onattribute(name, value) {
             if (name === 'href' || name === 'src') {
-                urls.push(value);
+                urls.add(value);
             }
         },
     });
 
-    parser.write(body);
+    parser.write(await resp.text());
     parser.end();
 
-    // unique
-    urls = [...new Set(urls)];
-
     // format
-    urls = urls.map(formatUrl);
+    urls = Array.from(urls).map(url => new URL(url, process.argv[2]).href);
 
     return urls;
 }
 
 async function crawl(targetUrl) {
-    if (debug) {
-        console.log('Crawling: ' + targetUrl);
-    }
+    console.log(targetUrl);
 
     // Mark current URL as crawled
-    crawled.push(targetUrl);
+    crawled.add(targetUrl);
 
     // Get new URLs to crawl
-    let newUrls = (await getUrls(targetUrl)).filter(shouldQueue);
+    (await getUrls(targetUrl))
+        .filter(url => {
+            const isAlreadyCrawled = crawled.has(url);
+            const isSameDomain = new URL(url).hostname === new URL(process.argv[2]).hostname;
 
-    // Add newly found URLs to queue
-    queue = queue.concat(newUrls);
-
-    if (!debug) {
-        // TODO: fix
-        newUrls.forEach(console.log);
-    }
+            return !isAlreadyCrawled && isSameDomain;
+        })
+        .forEach(crawl);
 }
 
-// relative to absolute, lowercase, remove hash etc.
-function formatUrl(url) {
-    url = new URL(url, process.argv[2]);
-    url.hash = '';
+let crawled = new Set();
 
-    return url.href;
-}
-
-function shouldQueue(url) {
-    const isAlreadyCrawled = crawled.includes(url);
-    const isAlreadyQueued = queue.includes(url);
-    const isSameDomain = new URL(url).hostname === new URL(process.argv[2]).hostname;
-
-    return !isAlreadyCrawled && !isAlreadyQueued && isSameDomain;
-}
-
-let crawled = [];
-let queue = [
-    formatUrl(process.argv[2]), // first URL to crawl
-    formatUrl(new URL(process.argv[2]).origin + '/sitemap.xml'), // we also want to crawl the sitemap
-];
-let count = 0;
-
-setInterval(async () => {
-    // if queue is empty
-    if (!queue.length) return;
-
-    let url = queue.shift();
-
-    if (debug) {
-        console.log(`\n${++count} (${queue.length} others remaining)`);
-    }
-
-    crawl(url);
-}, 50);
-
-// TODO: instead of using setinterval, make it recursive
-// TODO: use Set() instead of array, to avoid duplicates
+crawl(new URL(process.argv[2]).href)
